@@ -5,11 +5,11 @@ import (
 )
 
 type ThreadPool[T any] struct {
-	chErr      chan T
-	taskCh     chan func() T
-	workerNum  int
-	wg         sync.WaitGroup
-	errorsList []T
+	chData       chan T
+	taskCh       chan func() T
+	workerNum    int
+	wg           sync.WaitGroup
+	returnedList []T
 }
 
 // NewPool creates a new thread pool
@@ -19,18 +19,18 @@ func NewPool[T any](workerNum int, taskBufferSize ...int) *ThreadPool[T] {
 		bufSize = taskBufferSize[0]
 	}
 	pool := &ThreadPool[T]{
-		taskCh:     make(chan func() T, bufSize),
-		workerNum:  workerNum,
-		chErr:      make(chan T),
-		errorsList: make([]T, 0),
+		taskCh:       make(chan func() T, bufSize),
+		workerNum:    workerNum,
+		chData:       make(chan T),
+		returnedList: make([]T, 0),
 	}
 
 	pool.wg.Add(workerNum)
 	go func() {
-		for v := range pool.chErr {
-			pool.errorsList = append(pool.errorsList, v)
+		for v := range pool.chData {
+			pool.returnedList = append(pool.returnedList, v)
 		}
-		close(pool.chErr)
+		close(pool.chData)
 	}()
 	for i := 0; i < workerNum; i++ {
 		go pool.worker()
@@ -38,8 +38,8 @@ func NewPool[T any](workerNum int, taskBufferSize ...int) *ThreadPool[T] {
 	return pool
 }
 
-func (p *ThreadPool[T]) Errors() []T {
-	return p.errorsList
+func (p *ThreadPool[T]) Data() []T {
+	return p.returnedList
 }
 
 // worker function that listens for tasks and executes them
@@ -47,7 +47,7 @@ func (p *ThreadPool[T]) worker() {
 	defer p.wg.Done()
 	for task := range p.taskCh {
 		v := task()
-		p.chErr <- v
+		p.chData <- v
 	}
 }
 
@@ -65,29 +65,16 @@ func (p *ThreadPool[T]) Wait() {
 // Example
 
 // func main() {
-// 	pool := New[error](10)
+// 	pool := NewPool[error](10)
 // 	for i := 0; i < 100; i++ {
 // 		in := i
 // 		pool.Submit(func() error {
-// 			ss := 0
 // 			fmt.Println("TASK", in)
-// 			if in%5 == 0 {
-// 				ss = 2
-// 			}
-// 			time.Sleep(time.Duration(ss) * time.Second)
-// 			if in%5 == 0 {
-// 				fmt.Println("FINISH SLEEP", in)
-// 			}
-
-// 			if in%2 != 0 {
-// 				return fmt.Errorf("-------- error %d", in)
-// 			}
-
 // 			return nil
 // 		})
 // 	}
 // 	pool.Wait()
-// 	errs := pool.Errors()
+// 	errs := pool.Data()
 // 	if len(errs) > 0 {
 // 		fmt.Println("err:", len(errs))
 // 		fmt.Println("err list:", errs)
