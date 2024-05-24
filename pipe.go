@@ -59,34 +59,50 @@ func (p *Pipeline[T]) Wait() {
 // Example
 
 // func main() {
-// 	pipeline := NewPipeline[int]()
-// 	// add stages
-// 	for i := 0; i < 5; i++ {
-// 		in := i
-// 		err := pipeline.AddStage("stage-"+strconv.Itoa(in), func(data int) (int, error) {
-// 			fmt.Printf("stage-%d : %v\n", in, data)
-// 			time.Sleep(time.Second * time.Duration(in))
-// 			return data + 1, nil
-// 		})
-// 		if err != nil {
-// 			fmt.Println(err)
-// 			return
-// 		}
-// 	}
-// 	// process the 5 stages with 1
-// 	err := pipeline.Process(1)
+// 	// Create a worker pool with 3 workers
+// 	pipe := ksync.NewPipeline[string]()
+
+// 	err := pipe.AddStage("remove-space", func(s string) (string, error) {
+// 		return strings.ReplaceAll(s, " ", ""), nil
+// 	})
 // 	if err != nil {
-// 		fmt.Println(err)
+// 		fmt.Println("err:", err)
 // 	}
-// 	fmt.Println("--------------------------")
-// 	err = pipeline.Process(2)
+
+// 	err = pipe.AddStage("uppercase", func(s string) (string, error) {
+// 		return strings.ToUpper(s), nil
+// 	})
 // 	if err != nil {
-// 		fmt.Println(err)
+// 		fmt.Println("err:", err)
 // 	}
-// 	fmt.Println("--------------------------")
-// 	err = pipeline.Process(3)
+// 	err = pipe.AddStage("reverse", func(s string) (string, error) {
+// 		return string(reverse([]rune(s))), nil
+// 	})
 // 	if err != nil {
-// 		fmt.Println(err)
+// 		fmt.Println("err:", err)
 // 	}
-// 	pipeline.Wait()
+// 	err = pipe.AddStage("print", func(s string) (string, error) {
+// 		fmt.Println(s)
+// 		return "", nil
+// 	})
+// 	if err != nil {
+// 		fmt.Println("err:", err)
+// 	}
+
+// 	err = pipe.Process("kamal shkeir")
+// 	if err != nil {
+// 		fmt.Println("err Process:", err)
+// 	}
+// 	err = pipe.Process("another one")
+// 	if err != nil {
+// 		fmt.Println("err Process:", err)
+// 	}
+// 	pipe.Wait()
+// }
+
+// func reverse(s []rune) []rune {
+// 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+// 		s[i], s[j] = s[j], s[i]
+// 	}
+// 	return s
 // }
